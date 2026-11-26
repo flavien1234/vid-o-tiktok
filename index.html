@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vid-o-TikTok — Générateur de vidéos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Montserrat:wght@600;800;900&family=Playfair+Display:wght@700;900&family=Poppins:wght@600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">▶</span> Vid-o-TikTok</div>
+    <div class="top-actions">
+      <button id="btnNew" class="ghost" title="Nouveau projet">Nouveau</button>
+      <button id="btnSaveJson" class="ghost" title="Sauvegarder le projet (.json)">Sauver</button>
+      <label class="ghost button" title="Charger un projet (.json)">Ouvrir<input id="inpLoadJson" type="file" accept="application/json" hidden></label>
+      <button id="btnExport" class="primary">⬇ Exporter la vidéo</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Colonne gauche : scènes -->
+    <section class="panel" id="panelScenes">
+      <div class="panel-head">
+        <h2>Scènes</h2>
+        <button id="btnAddScene" class="small">+ Ajouter</button>
+      </div>
+      <ol id="sceneList" class="scene-list"></ol>
+
+      <div id="sceneEditor" class="editor">
+        <h3>Scène sélectionnée</h3>
+        <label>Texte
+          <textarea id="sText" rows="3" placeholder="Ton texte… (Entrée = nouvelle ligne)"></textarea>
+        </label>
+        <div class="row">
+          <label>Emoji <input id="sEmoji" type="text" maxlength="8" placeholder="🔥"></label>
+          <label>Durée (s) <input id="sDuration" type="number" min="0.5" max="60" step="0.5"></label>
+        </div>
+        <div class="row">
+          <label>Animation
+            <select id="sAnim">
+              <option value="pop">Pop</option>
+              <option value="fade">Fondu</option>
+              <option value="zoom">Zoom</option>
+              <option value="slide">Glissé</option>
+              <option value="typewriter">Machine à écrire</option>
+              <option value="words">Mot par mot (sous-titres)</option>
+              <option value="none">Aucune</option>
+            </select>
+          </label>
+          <label>Position
+            <select id="sPosition">
+              <option value="top">Haut</option>
+              <option value="center">Centre</option>
+              <option value="bottom">Bas</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label>Style du texte
+            <select id="sTextStyle">
+              <option value="box">Encadré</option>
+              <option value="outline">Contour</option>
+              <option value="shadow">Ombre</option>
+              <option value="plain">Simple</option>
+            </select>
+          </label>
+          <label>Taille <input id="sTextSize" type="range" min="40" max="180" step="2"></label>
+        </div>
+        <div class="row colors">
+          <label>Texte <input id="sTextColor" type="color"></label>
+          <label>Encadré <input id="sBoxColor" type="color"></label>
+        </div>
+
+        <h4>Arrière-plan</h4>
+        <div class="row">
+          <label>Type
+            <select id="sBgType">
+              <option value="gradient">Dégradé animé</option>
+              <option value="color">Couleur unie</option>
+              <option value="media">Image / vidéo</option>
+            </select>
+          </label>
+          <label class="colors-inline">Couleurs
+            <span><input id="sColor1" type="color"><input id="sColor2" type="color"></span>
+          </label>
+        </div>
+        <div id="mediaRow" class="row">
+          <label class="button file">📁 Choisir image/vidéo<input id="sMedia" type="file" accept="image/*,video/*" hidden></label>
+          <span id="sMediaName" class="muted">Aucun fichier</span>
+        </div>
+        <div id="mediaOpts" class="row">
+          <label>Assombrir <input id="sDim" type="range" min="0" max="0.8" step="0.05"></label>
+          <label class="check"><input id="sKenBurns" type="checkbox"> Effet Ken Burns</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Colonne centrale : aperçu -->
+    <section class="stage">
+      <div class="phone">
+        <canvas id="canvas" width="1080" height="1920"></canvas>
+      </div>
+      <div class="controls">
+        <button id="btnPlay" class="round" title="Lecture / pause (Espace)">▶</button>
+        <input id="seek" type="range" min="0" max="1" step="0.01" value="0">
+        <span id="timeLabel" class="time">0.0 / 0.0 s</span>
+      </div>
+      <div class="controls secondary">
+        <button id="btnCover" class="ghost small">🖼 Capture PNG</button>
+      </div>
+      <div id="exportBox" class="export-box" hidden>
+        <div class="progress"><div id="exportBar"></div></div>
+        <p id="exportStatus">Enregistrement…</p>
+        <video id="resultVideo" controls playsinline hidden></video>
+        <a id="downloadLink" class="button primary" hidden>Télécharger</a>
+      </div>
+    </section>
+
+    <!-- Colonne droite : génération + réglages -->
+    <section class="panel" id="panelSettings">
+      <h2>Générateur rapide</h2>
+      <label>Modèle
+        <select id="gTemplate">
+          <option value="auto">Texte libre (1 ligne = 1 scène)</option>
+          <option value="top">Top / Classement</option>
+          <option value="facts">Le savais-tu ?</option>
+          <option value="quote">Citation</option>
+          <option value="story">Storytime (sous-titres)</option>
+        </select>
+      </label>
+      <label>Ton script
+        <textarea id="gScript" rows="7" placeholder="Une idée par ligne…"></textarea>
+      </label>
+      <label class="check"><input id="gOutro" type="checkbox" checked> Ajouter « Abonne-toi » à la fin</label>
+      <label class="check"><input id="gReplace" type="checkbox" checked> Remplacer les scènes existantes</label>
+      <button id="btnGenerate" class="primary full">✨ Générer la vidéo</button>
+
+      <h2>Réglages</h2>
+      <label>Police
+        <select id="cfgFont">
+          <option value="Montserrat">Montserrat</option>
+          <option value="Poppins">Poppins</option>
+          <option value="Anton">Anton</option>
+          <option value="Bebas Neue">Bebas Neue</option>
+          <option value="Playfair Display">Playfair Display</option>
+        </select>
+      </label>
+      <div class="row">
+        <label>Pseudo <input id="cfgHandle" type="text" placeholder="@moncompte"></label>
+        <label>Accent <input id="cfgAccent" type="color"></label>
+      </div>
+      <label class="check"><input id="cfgShowHandle" type="checkbox"> Afficher le pseudo</label>
+      <label class="check"><input id="cfgShowProgress" type="checkbox"> Barre de progression</label>
+      <div class="row">
+        <label>Transition (s) <input id="cfgTransition" type="number" min="0" max="1.5" step="0.05"></label>
+        <label>Images/s
+          <select id="cfgFps"><option value="30">30</option><option value="60">60</option></select>
+        </label>
+      </div>
+
+      <h2>Musique</h2>
+      <div class="row">
+        <label class="button file">🎵 Choisir un son<input id="cfgMusic" type="file" accept="audio/*" hidden></label>
+        <button id="btnRemoveMusic" class="ghost small" hidden>Retirer</button>
+      </div>
+      <p id="musicName" class="muted">Aucune musique</p>
+      <label>Volume <input id="cfgVolume" type="range" min="0" max="1" step="0.05"></label>
+
+      <p class="hint">Astuce : garde l'onglet visible pendant l'export, la vidéo est enregistrée en temps réel.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
